@@ -1,0 +1,10 @@
+{
+  "Group": "com.lostale",
+  "Name": "HyLostate",
+  "Version": "1.0.1",
+  "Description": "A Hytale server mod",
+  "Authors": [{"Name": "Wonyu"}],
+  "Main": "com.lostale.hylostale.HyLostale",
+  "LoadOrder": "POSTWORLD",
+  "IncludesAssetPack": true
+}

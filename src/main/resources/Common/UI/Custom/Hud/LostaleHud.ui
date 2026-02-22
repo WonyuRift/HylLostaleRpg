@@ -1,0 +1,28 @@
+$Common = "Common.ui";
+
+Group {
+    LayoutMode: Top;
+    Anchor: (Top: 50, Left: 50, Width: 760, Height: 310);
+
+    Group #HudJoueur {
+    ProgressBar #Vie {
+        Anchor: (Top: 60, Left: 100, Width: 400, Height: 20);
+        BarTexturePath: "Textures/BarreVie.png";
+        Background: "Textures/BarreVide.png";
+    }
+    ProgressBar #Mana {
+        Anchor: (Top: 82, Left: 100, Width: 400, Height: 20);
+        BarTexturePath: "Textures/BarreVie.png";
+        Background: "Textures/BarreVide.png";
+    }
+    ProgressBar #Exp {
+        Anchor: (Top: 102, Left: 100, Width: 400, Height: 20);
+        BarTexturePath: "Textures/BarreVie.png";
+        Background: "Textures/BarreVide.png";
+    }
+    AssetImage #CadreJoueur {
+        Anchor: (Top: 0, Left: 0, Width: 160, Height: 160);
+        Background: "Textures/CadreJoueur.png";
+        }
+    }
+}
