@@ -9,7 +9,7 @@ import com.hypixel.hytale.server.core.command.system.basecommands.AbstractAsyncC
 import com.hypixel.hytale.server.core.universe.PlayerRef;
 import com.hypixel.hytale.server.core.universe.Universe;
 import com.lostale.hylostale.ui.HylHudManager;
-import com.lostale.hylostale.ui.HylHudService;
+import com.lostale.hylostale.services.hud.HylHudService;
 
 import javax.annotation.Nonnull;
 import java.util.UUID;

@@ -1,11 +1,7 @@
-package com.lostale.hylostale.ui;
+package com.lostale.hylostale.services.hud;
 
-import com.google.gson.JsonObject;
-import com.google.gson.JsonParser;
 import com.lostale.hylostale.store.HylData;
 
-import java.io.InputStreamReader;
-import java.net.URL;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
@@ -91,11 +87,16 @@ public final class HylHudService {
        ----------------------------- */
 
     public int nextThreshold(int level) {
-        return Math.max(1, level * 100);
+        int base = 100;
+        int growth = level - 1;
+        return base + 25 * growth * growth;
     }
 
     public int computeMaxHp(int level) {
-        return 100 + (level - 1) * 10;
+        int base = 100;
+        int linear = 2 * (level - 1);
+        int soft = (int) Math.round(12.0 * Math.sqrt(level - 1));
+        return base + linear + soft;
     }
 
         /* -----------------------------
@@ -105,7 +106,8 @@ public final class HylHudService {
     public PlayerData addXp(UUID uuid, int delta) {
         PlayerData cur = ensure(uuid);
 
-        int lvl = cur.level();
+        int oldLvl = cur.level();
+        int lvl = oldLvl;
         int xp = Math.max(0, cur.xp() + delta);
 
         while (xp >= nextThreshold(lvl)) {
@@ -115,7 +117,9 @@ public final class HylHudService {
 
         int newMaxHp = computeMaxHp(lvl);
 
-        int newHp = Math.min(cur.hp(), newMaxHp);
+        int newHp;
+        if (lvl > oldLvl) newHp = newMaxHp;
+        else newHp = Math.min(cur.hp(), newMaxHp);
 
         PlayerData next = new PlayerData(lvl, xp, newMaxHp, newHp);
         cache.put(uuid, next);

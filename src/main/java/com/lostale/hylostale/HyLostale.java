@@ -8,10 +8,16 @@ import com.hypixel.hytale.server.core.plugin.JavaPluginInit;
 import com.hypixel.hytale.server.core.universe.PlayerRef;
 import com.lostale.hylostale.commands.HylCommand;
 import com.lostale.hylostale.ecs.damage.DamageFilterSystem;
+import com.lostale.hylostale.ecs.health.HealthRegenManager;
+import com.lostale.hylostale.ecs.mobs.MobDamageRpgSystem;
+import com.lostale.hylostale.ecs.mobs.MobLevelAssignSystem;
+import com.lostale.hylostale.ecs.mobs.TargetNameTickSystem;
 import com.lostale.hylostale.ecs.stamina.StaminaVanillaCancelSystem;
+import com.lostale.hylostale.services.hud.HylHudService;
+import com.lostale.hylostale.services.mobs.MobInfoService;
+import com.lostale.hylostale.services.mobs.MobLevelService;
 import com.lostale.hylostale.store.HylData;
 import com.lostale.hylostale.ui.HylHudManager;
-import com.lostale.hylostale.ui.HylHudService;
 import com.lostale.hylostale.util.system.UiDrainTickSystem;
 
 import javax.annotation.Nonnull;
@@ -25,6 +31,9 @@ public final class HyLostale extends JavaPlugin {
     private HylData store;
     private HylHudService stats;
     private HylHudManager ready;
+    private HealthRegenManager regen;
+    private MobLevelService mobLevels;
+    private MobInfoService mobInfo;
     private Timer timer;
     public static HytaleLogger LOG;
     private Map<String, Float> staminaMap;
@@ -39,17 +48,24 @@ public final class HyLostale extends JavaPlugin {
         store.init();
         LOG = getLogger();
         staminaMap = new HashMap<>();
-
         stats = new HylHudService(store);
         ready = new HylHudManager(stats);
+        regen = new HealthRegenManager(stats, ready);
+        mobLevels = new MobLevelService();
+        mobInfo = new MobInfoService();
+
+        regen.start();
 
         getEventRegistry().registerGlobal(PlayerReadyEvent.class, ready::onPlayerReady);
         getEventRegistry().registerGlobal(PlayerDisconnectEvent.class, ready::onPlayerDisconnect);
         getCommandRegistry().registerCommand(new HylCommand(stats, ready));
 
         getEntityStoreRegistry().registerSystem(new StaminaVanillaCancelSystem(staminaMap));
-        getEntityStoreRegistry().registerSystem(new DamageFilterSystem(stats, ready));
+        getEntityStoreRegistry().registerSystem(new DamageFilterSystem(stats, ready, regen));
         getEntityStoreRegistry().registerSystem(new UiDrainTickSystem());
+        getEntityStoreRegistry().registerSystem(new MobLevelAssignSystem(mobLevels, mobInfo));
+        getEntityStoreRegistry().registerSystem(new MobDamageRpgSystem(mobLevels, ready, regen, stats));
+        getEntityStoreRegistry().registerSystem(new TargetNameTickSystem(ready, mobInfo, mobLevels, regen));
 
         timer = new java.util.Timer(true);
         timer.scheduleAtFixedRate(new java.util.TimerTask() {
@@ -58,22 +74,13 @@ public final class HyLostale extends JavaPlugin {
             }
         }, 3000L, 3000L);
 
-        getEventRegistry().register(PlayerDisconnectEvent.class, event -> {
-                    PlayerRef player = event.getPlayerRef();
-                    this.staminaMap.remove(player.getUuid().toString());
-                });
-
+        getEventRegistry().register(PlayerDisconnectEvent.class, event -> {PlayerRef player = event.getPlayerRef();this.staminaMap.remove(player.getUuid().toString());});
     }
-
 
     @Override
     protected void shutdown() {
         if (timer != null) timer.cancel();
+        if (regen != null) regen.shutdown();
         if (stats != null) stats.flushAll(); // dernier flush forcé
-    }
-
-
-    private Path resolveWorldDir() {
-        return getDataDirectory().toAbsolutePath();
     }
 }

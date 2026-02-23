@@ -6,23 +6,48 @@ Group {
 
     Group #HudJoueur {
     ProgressBar #Vie {
-        Anchor: (Top: 60, Left: 100, Width: 400, Height: 20);
+        Anchor: (Top: 43, Left: 135, Width: 300, Height: 15);
         BarTexturePath: "Textures/BarreVie.png";
         Background: "Textures/BarreVide.png";
     }
-    ProgressBar #Mana {
-        Anchor: (Top: 82, Left: 100, Width: 400, Height: 20);
+        Label #VieLabel {
+            Anchor: (Top: 43, Left: 135, Width: 300, Height: 15);
+            Style: (FontSize: 11, Alignment: Center, RenderBold: true);
+            Text: "100 / 100";
+        }
+        ProgressBar #Mana {
+        Anchor: (Top: 60, Left: 135, Width: 300, Height: 15);
         BarTexturePath: "Textures/BarreVie.png";
         Background: "Textures/BarreVide.png";
     }
     ProgressBar #Exp {
-        Anchor: (Top: 102, Left: 100, Width: 400, Height: 20);
-        BarTexturePath: "Textures/BarreVie.png";
+        Anchor: (Top: 77, Left: 135, Width: 300, Height: 15);
+        BarTexturePath: "Textures/BarreExp.png";
         Background: "Textures/BarreVide.png";
     }
-    AssetImage #CadreJoueur {
-        Anchor: (Top: 0, Left: 0, Width: 160, Height: 160);
+        Label #ExpLabel {
+            Anchor: (Top: 77, Left: 135, Width: 300, Height: 15);
+            Style: (FontSize: 11, Alignment: Center, RenderBold: true);
+            Text: "100 / 100";
+        }
+
+        AssetImage #CadreJoueur {
+        Anchor: (Top: 0, Left: 0, Width: 135, Height: 135);
         Background: "Textures/CadreJoueur.png";
+        }
+        AssetImage #CaseNiveau {
+            Anchor: (Top: 98, Left: 53, Width: 30, Height: 30);
+            Background: "Textures/CaseNiveau.png";
+        }
+        Label #LevelLabel {
+            Anchor: (Top: 98, Left: 53, Width: 30, Height: 30);
+            Style: (FontSize: 13, Alignment: Center, RenderBold: true, TextColor: #5cc163);
+            Text: "1";
+        }
+        Label #TargetName {
+            Anchor: (Top: 170, Left: 50, Width: 400, Height: 20);
+            Style: (FontSize: 11, Alignment: Center, RenderBold: true);
+            Text: "";
         }
     }
 }

@@ -11,6 +11,8 @@ repositories {
 
 dependencies {
     compileOnly(files("${System.getProperty("user.home")}/AppData/Roaming/Hytale/install/release/package/game/latest/Server/HytaleServer.jar"))
+    implementation("com.google.code.gson:gson:2.11.0")
+    implementation("org.xerial:sqlite-jdbc:3.45.1.0")
 }
 
 tasks.withType<JavaCompile>().configureEach {

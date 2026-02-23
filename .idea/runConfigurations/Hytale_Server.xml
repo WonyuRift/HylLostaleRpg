@@ -1,0 +1,11 @@
+<component name="ProjectRunConfigurationManager">
+  <configuration default="false" name="Hytale Server" type="JarApplication">
+    <option name="JAR_PATH" value="$USER_HOME$/AppData/Roaming/Hytale/install/release/package/game/latest/Server/HytaleServer.jar" />
+    <option name="PROGRAM_PARAMETERS" value="--assets &quot;$USER_HOME$/AppData/Roaming/Hytale/install/release/package/game/latest/Assets.zip&quot; --mods &quot;$PROJECT_DIR$/build/runtimeMods&quot;" />
+    <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$/run" />
+    <option name="ALTERNATIVE_JRE_PATH" />
+    <method v="2">
+      <option name="Gradle.BeforeRunTask" enabled="true" tasks="deployJar" externalProjectPath="$PROJECT_DIR$" vmOptions="" scriptParameters="" />
+    </method>
+  </configuration>
+</component>

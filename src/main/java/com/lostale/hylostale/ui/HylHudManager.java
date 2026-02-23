@@ -1,18 +1,13 @@
 package com.lostale.hylostale.ui;
 
-import com.google.gson.JsonObject;
-import com.google.gson.JsonParser;
 import com.hypixel.hytale.protocol.packets.interface_.HudComponent;
 import com.hypixel.hytale.server.core.entity.entities.Player;
 import com.hypixel.hytale.server.core.event.events.player.PlayerDisconnectEvent;
 import com.hypixel.hytale.server.core.event.events.player.PlayerReadyEvent;
 import com.hypixel.hytale.server.core.universe.PlayerRef;
-import com.lostale.hylostale.HyLostale;
+import com.lostale.hylostale.services.hud.HylHudService;
 import com.lostale.hylostale.util.system.UiQueue;
 
-import java.io.IOException;
-import java.io.InputStreamReader;
-import java.net.URL;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
@@ -68,9 +63,8 @@ public final class HylHudManager {
     private void renderXp(UUID id, HylHudService.PlayerData st) {
         HylHud hud = hudMap.get(id);
         if (hud != null)
-            UiQueue.post(() -> hud.updateText(stats.formatXp(st)));
+            UiQueue.post(() -> hud.updateExperience(st.xp(), stats.nextThreshold(st.level()), st.level()));
     }
-
 
     private void hideVanillaElements(PlayerReadyEvent e) {
         Player p = e.getPlayer();
@@ -78,5 +72,13 @@ public final class HylHudManager {
 
         // Désactiver HUD vanilla
         p.getHudManager().hideHudComponents(ref, HudComponent.Health, HudComponent.Stamina);
+    }
+
+    public HylHud getHud(UUID playerId) {
+        return hudMap.get(playerId);
+    }
+
+    public java.util.Set<UUID> getOnlineIds() {
+        return java.util.Collections.unmodifiableSet(hudMap.keySet());
     }
 }

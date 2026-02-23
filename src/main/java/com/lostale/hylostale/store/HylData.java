@@ -1,6 +1,6 @@
 package com.lostale.hylostale.store;
 
-import com.lostale.hylostale.ui.HylHudService;
+import com.lostale.hylostale.services.hud.HylHudService;
 
 import java.nio.file.Path;
 import java.sql.*;
@@ -31,8 +31,6 @@ public final class HylData {
                   xp INTEGER NOT NULL,
                   max_hp INTEGER NOT NULL,
                   hp INTEGER NOT NULL,
-                  max_sta INTEGER NOT NULL,
-                  sta INTEGER NOT NULL,
                   updated_at INTEGER NOT NULL
                 );
             """);
@@ -44,7 +42,7 @@ public final class HylData {
     public HylHudService.PlayerData load(UUID uuid) {
         try (Connection c = DriverManager.getConnection(jdbcUrl);
              PreparedStatement ps = c.prepareStatement("""
-                 SELECT level,xp,max_hp,hp,max_sta,sta
+                 SELECT level,xp,max_hp,hp
                  FROM player_rpg WHERE uuid = ?
              """)) {
 
@@ -70,15 +68,13 @@ public final class HylData {
 
         try (Connection c = DriverManager.getConnection(jdbcUrl);
              PreparedStatement ps = c.prepareStatement("""
-                 INSERT INTO player_rpg(uuid,level,xp,max_hp,hp,max_sta,sta,updated_at)
-                 VALUES(?,?,?,?,?,?,?,?)
+                 INSERT INTO player_rpg(uuid,level,xp,max_hp,hp,updated_at)
+                 VALUES(?,?,?,?,?,?)
                  ON CONFLICT(uuid) DO UPDATE SET
                    level=excluded.level,
                    xp=excluded.xp,
                    max_hp=excluded.max_hp,
                    hp=excluded.hp,
-                   max_sta=excluded.max_sta,
-                   sta=excluded.sta,
                    updated_at=excluded.updated_at
              """)) {
 
