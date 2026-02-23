@@ -1,42 +1,60 @@
 package com.lostale.hylostale;
 
-import com.hypixel.hytale.logger.HytaleLogger;
 import com.hypixel.hytale.server.core.event.events.player.PlayerDisconnectEvent;
 import com.hypixel.hytale.server.core.event.events.player.PlayerReadyEvent;
 import com.hypixel.hytale.server.core.plugin.JavaPlugin;
 import com.hypixel.hytale.server.core.plugin.JavaPluginInit;
-import com.hypixel.hytale.server.core.universe.PlayerRef;
 import com.lostale.hylostale.commands.HylCommand;
-import com.lostale.hylostale.ecs.damage.DamageFilterSystem;
-import com.lostale.hylostale.ecs.health.HealthRegenManager;
-import com.lostale.hylostale.ecs.mobs.MobDamageRpgSystem;
-import com.lostale.hylostale.ecs.mobs.MobLevelAssignSystem;
-import com.lostale.hylostale.ecs.mobs.TargetNameTickSystem;
-import com.lostale.hylostale.ecs.stamina.StaminaVanillaCancelSystem;
-import com.lostale.hylostale.services.hud.HylHudService;
-import com.lostale.hylostale.services.mobs.MobInfoService;
-import com.lostale.hylostale.services.mobs.MobLevelService;
-import com.lostale.hylostale.store.HylData;
-import com.lostale.hylostale.ui.HylHudManager;
-import com.lostale.hylostale.util.system.UiDrainTickSystem;
+import com.lostale.hylostale.config.HylConfig;
+import com.lostale.hylostale.data.HylData;
+import com.lostale.hylostale.data.player.HylPlayerDB;
+import com.lostale.hylostale.data.repo.player.HylPlayerRepository;
+import com.lostale.hylostale.entity.mob.HylMobManager;
+import com.lostale.hylostale.entity.mob.systems.HylMobDamageFilterSystem;
+import com.lostale.hylostale.entity.mob.systems.HylMobLevelAssignSystem;
+import com.lostale.hylostale.entity.mob.systems.HylMobTargetInfoSystem;
+import com.lostale.hylostale.entity.player.HylPlayerManager;
+import com.lostale.hylostale.entity.player.systems.HylDamagePlayerFilter;
+import com.lostale.hylostale.entity.player.systems.HylRegenManager;
+import com.lostale.hylostale.service.mob.HylMobStatsService;
+import com.lostale.hylostale.service.mob.HylMobXpService;
+import com.lostale.hylostale.service.player.HylPlayerExpService;
+import com.lostale.hylostale.service.player.HylPlayerStatsService;
+import com.lostale.hylostale.service.ui.HylHudService;
+import com.lostale.hylostale.utils.vanilla.cancel.HylStaminaVanillaCancelSystem;
 
 import javax.annotation.Nonnull;
-import java.nio.file.Path;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.Timer;
 
 public final class HyLostale extends JavaPlugin {
 
-    private HylData store;
-    private HylHudService stats;
-    private HylHudManager ready;
-    private HealthRegenManager regen;
-    private MobLevelService mobLevels;
-    private MobInfoService mobInfo;
-    private Timer timer;
-    public static HytaleLogger LOG;
-    private Map<String, Float> staminaMap;
+    // DB
+    private HylData db;
+    private HylPlayerDB playerDb;
+    private HylPlayerRepository playerRepo;
+
+    // Config
+    private HylConfig cfg;
+
+    // Player RPG core
+    private HylPlayerManager players;
+    private HylPlayerStatsService stats;
+    private HylPlayerExpService xp;
+
+    // HUD
+    private HylHudService huds;
+
+    // Regen
+    private HylRegenManager regen;
+
+    // Mob RPG core
+    private HylMobManager mobs;
+    private HylMobStatsService mobStats;
+    private HylMobXpService mobXp;
+
+    //Vanilla
+    private Map<String, Float> vanillaStaminaMap;
 
     public HyLostale(@Nonnull JavaPluginInit init) {
         super(init);
@@ -44,43 +62,99 @@ public final class HyLostale extends JavaPlugin {
 
     @Override
     protected void setup() {
-        store = new HylData(getDataDirectory().toAbsolutePath());
-        store.init();
-        LOG = getLogger();
-        staminaMap = new HashMap<>();
-        stats = new HylHudService(store);
-        ready = new HylHudManager(stats);
-        regen = new HealthRegenManager(stats, ready);
-        mobLevels = new MobLevelService();
-        mobInfo = new MobInfoService();
 
+        // --------------------
+        // 1) DB
+        // --------------------
+        db = new HylData(getDataDirectory().toAbsolutePath());
+        db.init();
+
+        playerDb = new HylPlayerDB(db.connection());
+        playerDb.initSchema();
+        playerRepo = playerDb;
+
+        // --------------------
+        // 2) Config
+        // --------------------
+        cfg = new HylConfig(); // plus tard: loader json
+
+        // --------------------
+        // 3) Player RPG stack
+        // --------------------
+        players = new HylPlayerManager(playerRepo);
+        stats = new HylPlayerStatsService(players, cfg);
+        xp = new HylPlayerExpService(players, cfg);
+
+        // --------------------
+        // 4) HUD
+        // --------------------
+        huds = new HylHudService(players, stats, xp);
+
+        // --------------------
+        // 5) Regen hors combat
+        // --------------------
+        regen = new HylRegenManager(players, stats, huds, cfg);
         regen.start();
 
-        getEventRegistry().registerGlobal(PlayerReadyEvent.class, ready::onPlayerReady);
-        getEventRegistry().registerGlobal(PlayerDisconnectEvent.class, ready::onPlayerDisconnect);
-        getCommandRegistry().registerCommand(new HylCommand(stats, ready));
+        // --------------------
+        // 6) Mob RPG stack
+        // --------------------
+        mobs = new HylMobManager();
+        mobStats = new HylMobStatsService(mobs, cfg);
+        mobXp = new HylMobXpService(cfg);
 
-        getEntityStoreRegistry().registerSystem(new StaminaVanillaCancelSystem(staminaMap));
-        getEntityStoreRegistry().registerSystem(new DamageFilterSystem(stats, ready, regen));
-        getEntityStoreRegistry().registerSystem(new UiDrainTickSystem());
-        getEntityStoreRegistry().registerSystem(new MobLevelAssignSystem(mobLevels, mobInfo));
-        getEntityStoreRegistry().registerSystem(new MobDamageRpgSystem(mobLevels, ready, regen, stats));
-        getEntityStoreRegistry().registerSystem(new TargetNameTickSystem(ready, mobInfo, mobLevels, regen));
+        // --------------------
+        // 7.1) Vanilla
+        // --------------------
+        vanillaStaminaMap = new HashMap<>();
 
-        timer = new java.util.Timer(true);
-        timer.scheduleAtFixedRate(new java.util.TimerTask() {
-            @Override public void run() {
-                if (stats != null) stats.flushDirty();
-            }
-        }, 3000L, 3000L);
+        // --------------------
+        // 7.2) Events
+        // --------------------
+        getEventRegistry().registerGlobal(PlayerReadyEvent.class, (PlayerReadyEvent e) -> {
+            huds.onPlayerReady(e);
+            regen.onPlayerReady(e.getPlayer().getUuid());
+        });
 
-        getEventRegistry().register(PlayerDisconnectEvent.class, event -> {PlayerRef player = event.getPlayerRef();this.staminaMap.remove(player.getUuid().toString());});
+        getEventRegistry().registerGlobal(PlayerDisconnectEvent.class, (PlayerDisconnectEvent e) -> {
+            huds.onPlayerDisconnect(e);
+            regen.onPlayerDisconnect(e.getPlayerRef().getUuid());
+            players.unload(e.getPlayerRef().getUuid());
+        });
+
+        // --------------------
+        // 8) Commands
+        // --------------------
+        getCommandRegistry().registerCommand(new HylCommand(players, stats, xp, huds));
+
+        // --------------------
+        // 9) Systems
+        // --------------------
+        // Joueur: HP RPG
+        getEntityStoreRegistry().registerSystem(new HylDamagePlayerFilter(stats, huds));
+
+
+
+        // Mob: assign level/hp
+        getEntityStoreRegistry().registerSystem(new HylMobLevelAssignSystem(mobs, mobStats));
+
+        // Mob: HP RPG + reward XP au kill
+        getEntityStoreRegistry().registerSystem(new HylMobDamageFilterSystem(
+                mobs, mobStats, mobXp,
+                players, xp, stats, huds
+        ));
+
+        // Vanilla: HP RPG
+        getEntityStoreRegistry().registerSystem(new HylStaminaVanillaCancelSystem(vanillaStaminaMap));
+
+        // Cible: afficher nom/level/hp dans HUD
+        getEntityStoreRegistry().registerSystem(new HylMobTargetInfoSystem(huds, mobs));
     }
 
     @Override
     protected void shutdown() {
-        if (timer != null) timer.cancel();
-        if (regen != null) regen.shutdown();
-        if (stats != null) stats.flushAll(); // dernier flush forcé
+        if (regen != null) regen.close();
+        if (players != null) players.saveAll();
+        if (db != null) db.close();
     }
 }

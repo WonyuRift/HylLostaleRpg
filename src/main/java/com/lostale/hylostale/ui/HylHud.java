@@ -7,7 +7,6 @@ import com.hypixel.hytale.server.core.universe.PlayerRef;
 import org.checkerframework.checker.nullness.compatqual.NonNullDecl;
 
 import javax.annotation.Nonnull;
-import java.util.UUID;
 
 public final class HylHud extends CustomUIHud {
 
