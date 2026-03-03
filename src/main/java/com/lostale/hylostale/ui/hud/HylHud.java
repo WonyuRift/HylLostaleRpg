@@ -1,4 +1,4 @@
-package com.lostale.hylostale.ui;
+package com.lostale.hylostale.ui.hud;
 
 import com.hypixel.hytale.server.core.Message;
 import com.hypixel.hytale.server.core.entity.entities.player.hud.CustomUIHud;
@@ -48,16 +48,47 @@ public final class HylHud extends CustomUIHud {
         if (!mounted) return;
 
         UICommandBuilder ui = new UICommandBuilder();
-        ui.set("#HudJoueur #TargetName.TextSpans", Message.raw(pendingTargetName));
+        ui.set("#NomMob.TextSpans", Message.raw(pendingTargetName));
+        ui.set("#LevelMob.TextSpans", Message.raw(pendingTargetName));
+        ui.set("#CadreMob.Visible", true);
+        ui.set("#CaseNiveauMob.Visible", true);
         update(false, ui);
     }
 
-    public void clearTargetName() {
+    public void setTargetLevel(String level) {
+        pendingTargetName = (level == null) ? "" : level;
+        if (!mounted) return;
+
+        UICommandBuilder ui = new UICommandBuilder();
+        ui.set("#LevelMob.TextSpans", Message.raw(pendingTargetName));
+        update(false, ui);
+    }
+
+    public void setTargetHp(int current, int max) {
+        float ratio = (max <= 0) ? 0f : Math.max(0f, Math.min(1f, (float) current / (float) max));
+        String pendingText = current + " / " + max;
+
+        if (!mounted) return;
+
+        UICommandBuilder ui = new UICommandBuilder();
+        ui.set("#VieMob.Value", ratio);
+        ui.set("#VieLabelMob.TextSpans", Message.raw(pendingText));
+        ui.set("#VieMob.Visible", true);
+        ui.set("#VieLabelMob.Visible", true);
+        update(false, ui);
+    }
+
+    public void clearTarget() {
         pendingTargetName = "";
         if (!mounted) return;
 
         UICommandBuilder ui = new UICommandBuilder();
-        ui.set("#HudJoueur #TargetName.TextSpans", Message.raw(pendingTargetName));
+        ui.set("#NomMob.TextSpans", Message.raw(pendingTargetName));
+        ui.set("#LevelMob.TextSpans", Message.raw(pendingTargetName));
+        ui.set("#CadreMob.Visible", false);
+        ui.set("#CaseNiveauMob.Visible", false);
+        ui.set("#VieMob.Visible", false);
+        ui.set("#VieLabelMob.Visible", false);
         update(false, ui);
     }
 }

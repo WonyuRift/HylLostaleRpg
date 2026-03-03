@@ -8,6 +8,7 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
 public class HylMobManager {
+
     private final Map<Ref<EntityStore>, HylMobData> cache = new ConcurrentHashMap<>();
 
     public HylMobData getOrCreate(Ref<EntityStore> ref) {

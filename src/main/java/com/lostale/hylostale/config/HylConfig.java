@@ -12,6 +12,12 @@ public class HylConfig {
     public int baseMana = 50;
     public int manaPerLevel = 4;
 
+    public int playerBaseAtk = 20;
+    public int playerAtkPerLevel = 4;
+
+    public int playerBaseDef = 0;
+    public int playerDefPerLevel = 1;
+
     // =====================
     // === XP PROGRESSION ==
     // =====================
@@ -21,6 +27,12 @@ public class HylConfig {
      */
     public int xpBase = 80;
     public double xpExponent = 1.35;
+
+    public double dmgDiffPerLevel = 0.02;     // +2% par niveau d’écart
+    public double dmgDiffMinMult = 0.50;      // clamp
+    public double dmgDiffMaxMult = 2.00;
+
+    public double defK = 50.0;
 
     // ============================
     // === MOB XP REWARD SCALING ==
@@ -82,4 +94,10 @@ public class HylConfig {
 
     public int mobBaseHp = 50;
     public int mobHpPerLevel = 8;
+
+    public int mobBaseAtk = 6;
+    public int mobAtkPerLevel = 2;
+
+    public int mobBaseDef = 0;
+    public int mobDefPerLevel = 1;
 }

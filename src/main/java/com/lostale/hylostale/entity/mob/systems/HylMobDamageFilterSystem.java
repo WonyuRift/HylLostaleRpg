@@ -2,11 +2,14 @@ package com.lostale.hylostale.entity.mob.systems;
 
 import com.hypixel.hytale.component.*;
 import com.hypixel.hytale.component.query.Query;
+import com.hypixel.hytale.logger.HytaleLogger;
 import com.hypixel.hytale.server.core.entity.entities.Player;
 import com.hypixel.hytale.server.core.modules.entity.damage.Damage;
 import com.hypixel.hytale.server.core.modules.entity.damage.DamageEventSystem;
 import com.hypixel.hytale.server.core.modules.entity.damage.DamageModule;
+import com.hypixel.hytale.server.core.universe.PlayerRef;
 import com.hypixel.hytale.server.core.universe.world.storage.EntityStore;
+import com.lostale.hylostale.config.HylConfig;
 import com.lostale.hylostale.data.mob.HylMobData;
 import com.lostale.hylostale.data.player.HylPlayerData;
 import com.lostale.hylostale.entity.mob.HylMobManager;
@@ -16,8 +19,10 @@ import com.lostale.hylostale.service.mob.HylMobXpService;
 import com.lostale.hylostale.service.player.HylPlayerExpService;
 import com.lostale.hylostale.service.player.HylPlayerStatsService;
 import com.lostale.hylostale.service.ui.HylHudService;
+import com.lostale.hylostale.utils.math.HylDamageScaling;
 
 import javax.annotation.Nonnull;
+import java.lang.reflect.Method;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
@@ -34,6 +39,9 @@ public class HylMobDamageFilterSystem extends DamageEventSystem {
     private final HylPlayerExpService xp;
     private final HylPlayerStatsService playerStats;
     private final HylHudService huds;
+    private final HylConfig config;
+
+    private static volatile boolean DUMPED_DAMAGE = false;
 
     private final Map<Ref<EntityStore>, UUID> lastDamager = new ConcurrentHashMap<>();
 
@@ -43,7 +51,8 @@ public class HylMobDamageFilterSystem extends DamageEventSystem {
                                     @Nonnull HylPlayerManager players,
                                     @Nonnull HylPlayerExpService xp,
                                     @Nonnull HylPlayerStatsService playerStats,
-                                    @Nonnull HylHudService huds) {
+                                    @Nonnull HylHudService huds,
+                                    @Nonnull HylConfig config) {
         this.mobs = mobs;
         this.mobStats = mobStats;
         this.mobXp = mobXp;
@@ -51,6 +60,7 @@ public class HylMobDamageFilterSystem extends DamageEventSystem {
         this.xp = xp;
         this.playerStats = playerStats;
         this.huds = huds;
+        this.config = config;
     }
 
     @Override
@@ -70,8 +80,14 @@ public class HylMobDamageFilterSystem extends DamageEventSystem {
                        @Nonnull CommandBuffer<EntityStore> commandBuffer,
                        @Nonnull Damage damage) {
 
+
         Ref<EntityStore> targetRef = chunk.getReferenceTo(index);
         if (targetRef == null || !targetRef.isValid()) return;
+
+        if (!DUMPED_DAMAGE) {
+            DUMPED_DAMAGE = true;
+            dumpDamage(damage);
+        }
 
         // Ignore joueurs (HP RPG joueur géré ailleurs)
         Player targetPlayer = store.getComponent(targetRef, Player.getComponentType());
@@ -87,13 +103,23 @@ public class HylMobDamageFilterSystem extends DamageEventSystem {
             lastDamager.put(targetRef, attacker);
         }
 
-        float raw = damage.getAmount();
-        int amount = (int) Math.ceil(Math.max(0f, raw));
-        if (amount <= 0) return;
+        int raw = (int) Math.ceil(Math.max(0f, damage.getAmount()));
+        if (raw <= 0) return;
+
+        // compute scaled
+        int attackerLvl = (attacker != null) ? playerStats.level(attacker) : mob.level; // fallback neutre
+        int attackerAtk = (attacker != null) ? playerStats.attack(attacker) : 0;
+
+        int mobLvl = mob.level;
+        int mobDef = mobStats.defense(mobLvl);
+
+        int scaled = HylDamageScaling.scale(
+                config, raw, attackerLvl, attackerAtk, mobLvl, mobDef
+        );
 
         // Annule dégâts vanilla et applique dégâts RPG
         damage.setCancelled(true);
-        mobStats.damage(mob, amount);
+        mobStats.damage(mob, scaled);
 
         HylMobHpScalerSystem.apply(store, commandBuffer, targetRef, mob);
         // Mort RPG -> déclencher mort vanilla + XP
@@ -109,12 +135,12 @@ public class HylMobDamageFilterSystem extends DamageEventSystem {
                 int gained = mobXp.computeKillXp(pd.level, mob.level);
 
                 int before = pd.level;
-                boolean leveled = xp.addXp(killer, gained);
+                xp.addXp(killer, gained);
                 int after = players.get(killer).level;
 
-                if (after > before || leveled) {
-                    playerStats.recompute(killer);
-                    playerStats.healToFull(killer);
+                if (after > before) {
+                    playerStats.recompute(killer, true);
+                    //playerStats.healToFull(killer);
                 }
 
                 huds.renderXp(killer);
@@ -134,26 +160,150 @@ public class HylMobDamageFilterSystem extends DamageEventSystem {
     @SuppressWarnings("unchecked")
     private UUID tryGetAttackerPlayerUuid(@Nonnull Damage damage, @Nonnull Store<EntityStore> store) {
 
-        // getAttacker() -> Ref -> Player
+        Object src;
         try {
-            Object refObj = damage.getClass().getMethod("getAttacker").invoke(damage);
-            if (refObj instanceof Ref<?> rr) {
-                Ref<EntityStore> ref = (Ref<EntityStore>) rr;
-                Player p = store.getComponent(ref, Player.getComponentType());
-                if (p != null) return p.getUuid();
-            }
-        } catch (Throwable ignored) {}
+            src = damage.getSource(); // Damage$Source
+        } catch (Throwable ignored) {
+            return null;
+        }
+        if (src == null) return null;
 
-        // getSource() -> Ref -> Player
-        try {
-            Object refObj = damage.getClass().getMethod("getSource").invoke(damage);
-            if (refObj instanceof Ref<?> rr) {
-                Ref<EntityStore> ref = (Ref<EntityStore>) rr;
-                Player p = store.getComponent(ref, Player.getComponentType());
-                if (p != null) return p.getUuid();
-            }
-        } catch (Throwable ignored) {}
+        // 1) Méthode la plus probable: source -> Ref<EntityStore> direct
+        UUID u = scanNoArgRefGetters(src, store);
+        if (u != null) return u;
+
+        // 2) Parfois: source -> PlayerRef
+        u = scanNoArgPlayerRefGetters(src);
+        if (u != null) return u;
+
+        // 3) Parfois: source -> UUID
+        u = scanNoArgUuidGetters(src);
+        if (u != null) return u;
+
+        // 4) Certains sources encapsulent encore un nested (ex: getEntitySource())
+        Object nested = scanNoArgNonJavaObject(src);
+        if (nested != null) {
+            u = scanNoArgRefGetters(nested, store);
+            if (u != null) return u;
+
+            u = scanNoArgPlayerRefGetters(nested);
+            if (u != null) return u;
+
+            u = scanNoArgUuidGetters(nested);
+            if (u != null) return u;
+        }
 
         return null;
+    }
+
+    @SuppressWarnings("unchecked")
+    private UUID scanNoArgRefGetters(Object obj, Store<EntityStore> store) {
+        try {
+            for (Method m : obj.getClass().getMethods()) {
+                if (m.getParameterCount() != 0) continue;
+                if (!Ref.class.isAssignableFrom(m.getReturnType())) continue;
+
+                Object v;
+                try { v = m.invoke(obj); } catch (Throwable ignored) { continue; }
+                if (!(v instanceof Ref<?> rr)) continue;
+
+                Ref<EntityStore> ref;
+                try { ref = (Ref<EntityStore>) rr; } catch (Throwable ignored) { continue; }
+
+                if (ref == null || !ref.isValid()) continue;
+
+                Player p = store.getComponent(ref, Player.getComponentType());
+                if (p != null) return p.getUuid();
+            }
+        } catch (Throwable ignored) {}
+        return null;
+    }
+
+    private UUID scanNoArgPlayerRefGetters(Object obj) {
+        try {
+            for (Method m : obj.getClass().getMethods()) {
+                if (m.getParameterCount() != 0) continue;
+                if (!PlayerRef.class.isAssignableFrom(m.getReturnType())) continue;
+
+                Object v;
+                try { v = m.invoke(obj); } catch (Throwable ignored) { continue; }
+                if (v instanceof PlayerRef pr && pr.isValid()) return pr.getUuid();
+            }
+        } catch (Throwable ignored) {}
+        return null;
+    }
+
+    private UUID scanNoArgUuidGetters(Object obj) {
+        try {
+            for (Method m : obj.getClass().getMethods()) {
+                if (m.getParameterCount() != 0) continue;
+                if (!UUID.class.isAssignableFrom(m.getReturnType())) continue;
+
+                Object v;
+                try { v = m.invoke(obj); } catch (Throwable ignored) { continue; }
+                if (v instanceof UUID id) return id;
+            }
+        } catch (Throwable ignored) {}
+        return null;
+    }
+
+    private Object scanNoArgNonJavaObject(Object obj) {
+        try {
+            for (Method m : obj.getClass().getMethods()) {
+                if (m.getParameterCount() != 0) continue;
+
+                Class<?> rt = m.getReturnType();
+                if (rt.isPrimitive()) continue;
+                if (rt.getName().startsWith("java.")) continue;
+                if (rt.isEnum()) continue;
+                if (rt.getName().startsWith("com.hypixel.hytale.component.Ref")) continue;
+                if (rt.getName().startsWith("com.hypixel.hytale.server.core.universe.PlayerRef")) continue;
+
+                String n = m.getName().toLowerCase();
+                if (!(n.contains("entity") || n.contains("source") || n.contains("owner") || n.contains("attacker") || n.contains("instigator"))) continue;
+
+                Object v;
+                try { v = m.invoke(obj); } catch (Throwable ignored) { continue; }
+                if (v != null) return v;
+            }
+        } catch (Throwable ignored) {}
+        return null;
+    }
+
+    private void dumpDamage(Damage damage) {
+        try {
+            HytaleLogger.getLogger().atInfo().log("[DMG-DUMP] class=%s", damage.getClass().getName());
+
+            for (Method m : damage.getClass().getMethods()) {
+                if (m.getParameterCount() != 0) continue;
+
+                Class<?> rt = m.getReturnType();
+                String name = m.getName();
+
+                // garde seulement les getters plausibles
+                String n = name.toLowerCase();
+                if (!(n.startsWith("get") || n.startsWith("is"))) continue;
+
+                // types intéressants
+                boolean interesting =
+                        com.hypixel.hytale.component.Ref.class.isAssignableFrom(rt) ||
+                                com.hypixel.hytale.server.core.universe.PlayerRef.class.isAssignableFrom(rt) ||
+                                java.util.UUID.class.isAssignableFrom(rt) ||
+                                rt == int.class || rt == long.class ||
+                                n.contains("att") || n.contains("source") || n.contains("instig") || n.contains("owner") || n.contains("cause");
+
+                if (!interesting) continue;
+
+                Object v = null;
+                try { v = m.invoke(damage); } catch (Throwable ignored) {}
+
+                String vt = (v == null) ? "null" : v.getClass().getName();
+                String vs = (v == null) ? "null" : String.valueOf(v);
+
+                HytaleLogger.getLogger().atInfo().log("[DMG-DUMP] %s -> %s | %s | %s", name, rt.getName(), vt, vs);
+            }
+        } catch (Throwable t) {
+            HytaleLogger.getLogger().atWarning().log("[DMG-DUMP] failed: %s", t.toString());
+        }
     }
 }

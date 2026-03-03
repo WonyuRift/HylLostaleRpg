@@ -7,12 +7,16 @@ version = "1.0.0"
 
 repositories {
     mavenCentral()
+    maven { url = uri("https://www.cursemaven.com") }
 }
 
 dependencies {
     compileOnly(files("${System.getProperty("user.home")}/AppData/Roaming/Hytale/install/release/package/game/latest/Server/HytaleServer.jar"))
     implementation("com.google.code.gson:gson:2.11.0")
     implementation("org.xerial:sqlite-jdbc:3.46.1.3")
+    compileOnly(files("libs/OrbisGuard-0.8.3.jar"))
+    compileOnly(files("libs/PlayerInteractLib-1.0.1.jar"))
+    implementation("curse.maven:hyui-1431415:7693755")
 }
 
 tasks.withType<JavaCompile>().configureEach {

@@ -1,5 +1,7 @@
 package com.lostale.hylostale.service.mob;
 
+import com.hypixel.hytale.component.Ref;
+import com.hypixel.hytale.server.core.universe.world.storage.EntityStore;
 import com.lostale.hylostale.config.HylConfig;
 import com.lostale.hylostale.data.mob.HylMobData;
 import com.lostale.hylostale.entity.mob.HylMobManager;
@@ -45,5 +47,15 @@ public class HylMobStatsService {
         int a = Math.max(0, amount);
         d.hp = Math.min(d.maxHp, d.hp + a);
         d.clamp();
+    }
+
+    public int attack(int level) {
+        int lvl = Math.max(1, level);
+        return cfg.mobBaseAtk + (lvl - 1) * cfg.mobAtkPerLevel;
+    }
+
+    public int defense(int level) {
+        int lvl = Math.max(1, level);
+        return cfg.mobBaseDef + (lvl - 1) * cfg.mobDefPerLevel;
     }
 }

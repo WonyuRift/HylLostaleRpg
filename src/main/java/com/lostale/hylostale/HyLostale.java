@@ -4,8 +4,10 @@ import com.hypixel.hytale.server.core.event.events.player.PlayerDisconnectEvent;
 import com.hypixel.hytale.server.core.event.events.player.PlayerReadyEvent;
 import com.hypixel.hytale.server.core.plugin.JavaPlugin;
 import com.hypixel.hytale.server.core.plugin.JavaPluginInit;
+import com.lostale.hylostale.commands.HylRegionEditorCommand;
 import com.lostale.hylostale.commands.HylCommand;
 import com.lostale.hylostale.config.HylConfig;
+import com.lostale.hylostale.config.HylRegionLevelConfig;
 import com.lostale.hylostale.data.HylData;
 import com.lostale.hylostale.data.player.HylPlayerDB;
 import com.lostale.hylostale.data.repo.player.HylPlayerRepository;
@@ -18,12 +20,16 @@ import com.lostale.hylostale.entity.player.systems.HylDamagePlayerFilter;
 import com.lostale.hylostale.entity.player.systems.HylRegenManager;
 import com.lostale.hylostale.service.mob.HylMobStatsService;
 import com.lostale.hylostale.service.mob.HylMobXpService;
+import com.lostale.hylostale.service.mob.HylZoneLevelService;
 import com.lostale.hylostale.service.player.HylPlayerExpService;
 import com.lostale.hylostale.service.player.HylPlayerStatsService;
+import com.lostale.hylostale.service.region.HylOrbisGuardRegionService;
+import com.lostale.hylostale.service.region.HylRegionEditorService;
 import com.lostale.hylostale.service.ui.HylHudService;
 import com.lostale.hylostale.utils.vanilla.cancel.HylStaminaVanillaCancelSystem;
 
 import javax.annotation.Nonnull;
+import java.nio.file.Path;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -33,9 +39,14 @@ public final class HyLostale extends JavaPlugin {
     private HylData db;
     private HylPlayerDB playerDb;
     private HylPlayerRepository playerRepo;
+    private HylZoneLevelService mobLevelService;
 
     // Config
     private HylConfig cfg;
+    private Path regionCfgFile;
+    private HylRegionLevelConfig regionCfg;
+    private HylOrbisGuardRegionService regionResolver;
+    private HylRegionEditorService editor;
 
     // Player RPG core
     private HylPlayerManager players;
@@ -72,11 +83,16 @@ public final class HyLostale extends JavaPlugin {
         playerDb = new HylPlayerDB(db.connection());
         playerDb.initSchema();
         playerRepo = playerDb;
+        mobLevelService = new HylZoneLevelService(/*worldSeed*/ 12345L, /*cell*/ 64, /*min*/ 1, /*max*/ 50);
 
         // --------------------
         // 2) Config
         // --------------------
         cfg = new HylConfig(); // plus tard: loader json
+        regionCfgFile = getDataDirectory().resolve("region_levels.json");
+        regionCfg = HylRegionLevelConfig.loadOrCreate(regionCfgFile);
+        regionResolver = new HylOrbisGuardRegionService();
+        editor = new HylRegionEditorService(regionCfgFile, regionCfg, regionResolver);
 
         // --------------------
         // 3) Player RPG stack
@@ -86,7 +102,7 @@ public final class HyLostale extends JavaPlugin {
         xp = new HylPlayerExpService(players, cfg);
 
         // --------------------
-        // 4) HUD
+        // 4) HUD et PAGES
         // --------------------
         huds = new HylHudService(players, stats, xp);
 
@@ -126,23 +142,26 @@ public final class HyLostale extends JavaPlugin {
         // 8) Commands
         // --------------------
         getCommandRegistry().registerCommand(new HylCommand(players, stats, xp, huds));
+        getCommandRegistry().registerCommand(new HylRegionEditorCommand(editor));
 
         // --------------------
         // 9) Systems
         // --------------------
         // Joueur: HP RPG
-        getEntityStoreRegistry().registerSystem(new HylDamagePlayerFilter(stats, huds));
+        getEntityStoreRegistry().registerSystem(new HylDamagePlayerFilter(stats, huds, mobs, mobStats, cfg, players));
 
 
 
         // Mob: assign level/hp
-        getEntityStoreRegistry().registerSystem(new HylMobLevelAssignSystem(mobs, mobStats));
+        getEntityStoreRegistry().registerSystem(new HylMobLevelAssignSystem(mobs, mobStats, regionCfg, regionResolver));
+
+
 
         // Mob: HP RPG + reward XP au kill
         getEntityStoreRegistry().registerSystem(new HylMobDamageFilterSystem(
                 mobs, mobStats, mobXp,
-                players, xp, stats, huds
-        ));
+                players, xp, stats, huds,
+        cfg));
 
         // Vanilla: HP RPG
         getEntityStoreRegistry().registerSystem(new HylStaminaVanillaCancelSystem(vanillaStaminaMap));

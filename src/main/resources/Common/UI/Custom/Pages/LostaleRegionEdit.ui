@@ -1,0 +1,140 @@
+$Common = "Common.ui";
+
+@ButtonStyle = TextButtonStyle(
+    Default: (Background: #3a7bd5, LabelStyle: (FontSize: 16, TextColor: #ffffff, RenderBold: true, HorizontalAlignment: Center, VerticalAlignment: Center)),
+    Hovered: (Background: #4a8be5, LabelStyle: (FontSize: 16, TextColor: #ffffff, RenderBold: true, HorizontalAlignment: Center, VerticalAlignment: Center)),
+    Pressed: (Background: #2a6bc5, LabelStyle: (FontSize: 16, TextColor: #ffffff, RenderBold: true, HorizontalAlignment: Center, VerticalAlignment: Center))
+);
+
+Group #RegionEditor {
+    LayoutMode: Top;
+    Background: (Color: #1a1a2e(0.95));
+    Anchor: (Width: 800, Height: 600);
+    Padding: (Full: 16);
+    Label #RegionLine {
+        Anchor: (Width: 720, Height: 22, Left: 0, Top: 0);
+        Text: "World: ? | Region: ?";
+        Style: (FontSize: 12, RenderBold: true, TextColor: #ffffff, HorizontalAlignment: Center);
+    }
+    Label #RegionsTitle {
+        Anchor: (Width: 240, Height: 18, Left: 16, Top: 0);
+        Text: "Regions";
+        Style: (FontSize: 12, RenderBold: true, TextColor: #ffffff, HorizontalAlignment: Center);
+    }
+    Group #RegionList {
+        Background: (Color: #000000(0.25));
+        Anchor: (Width: 260, Height: 220, Left: 16, Top: 15);
+        TextButton #RegionRow0 {
+            Anchor: (Width: 248, Height: 18, Left: 6, Top: 6);
+            Text: "-";
+        }
+        TextButton #RegionRow1 {
+            Anchor: (Width: 248, Height: 18, Left: 6, Top: 26);
+            Text: "-";
+        }
+        TextButton #RegionRow2 {
+            Anchor: (Width: 248, Height: 18, Left: 6, Top: 46);
+            Text: "-";
+        }
+        TextButton #RegionRow3 {
+            Anchor: (Width: 248, Height: 18, Left: 6, Top: 66);
+            Text: "-";
+        }
+        TextButton #RegionRow4 {
+            Anchor: (Width: 248, Height: 18, Left: 6, Top: 86);
+            Text: "-";
+        }
+        TextButton #RegionRow5 {
+            Anchor: (Width: 248, Height: 18, Left: 6, Top: 106);
+            Text: "-";
+        }
+        TextButton #RegionRow6 {
+            Anchor: (Width: 248, Height: 18, Left: 6, Top: 126);
+            Text: "-";
+        }
+        TextButton #RegionRow7 {
+            Anchor: (Width: 248, Height: 18, Left: 6, Top: 146);
+            Text: "-";
+        }
+        TextButton #RegionRow8 {
+            Anchor: (Width: 248, Height: 18, Left: 6, Top: 166);
+            Text: "-";
+        }
+        TextButton #RegionRow9 {
+            Anchor: (Width: 248, Height: 18, Left: 6, Top: 186);
+            Text: "-";
+        }
+    }
+    TextButton #PrevPage {
+        Anchor: (Width: 120, Height: 26, Left: 16, Top: 6);
+        Text: "Prev";
+        Style: @ButtonStyle;
+    }
+    TextButton #NextPage {
+        Anchor: (Width: 120, Height: 26, Left: 156, Top: -26);
+        Text: "Next";
+        Style: @ButtonStyle;
+    }
+    Label #MinLabel {
+        Anchor: (Width: 80, Height: 20, Left: 320, Top: -260);
+        Text: "Min";
+        Style: (FontSize: 12, RenderBold: true, TextColor: #ffffff, HorizontalAlignment: Center);
+    }
+    Label #MinValue {
+        Anchor: (Width: 80, Height: 26, Left: 386, Top: -25);
+        Text: "1";
+        Style: (FontSize: 18, RenderBold: true, TextColor: #ffffff, HorizontalAlignment: Center);
+    }
+    TextButton #MinDec {
+        Anchor: (Width: 40, Height: 26, Left: 474, Top: -25);
+        Text: "-";
+        Style: @ButtonStyle;
+    }
+    TextButton #MinInc {
+        Anchor: (Width: 40, Height: 26, Left: 530, Top: -25);
+        Text: "+";
+        Style: @ButtonStyle;
+    }
+
+    Label #MaxLabel {
+        Anchor: (Width: 80, Height: 20, Left: 320, Top: 29);
+        Text: "Max";
+        Style: (FontSize: 12, RenderBold: true, TextColor: #ffffff, HorizontalAlignment: Center);
+    }
+    Label #MaxValue {
+        Anchor: (Width: 80, Height: 26, Left: 386, Top: -25);
+        Text: "5";
+        Style: (FontSize: 18, RenderBold: true, TextColor: #ffffff, HorizontalAlignment: Center);
+    }
+    TextButton #MaxDec {
+        Anchor: (Width: 40, Height: 26, Left: 474, Top: -25);
+        Text: "-";
+        Style: @ButtonStyle;
+    }
+    TextButton #MaxInc {
+        Anchor: (Width: 40, Height: 26, Left: 530, Top: -25);
+        Text: "+";
+        Style: @ButtonStyle;
+    }
+
+    TextButton #Reload {
+        Anchor: (Width: 120, Height: 28, Left: 320, Top: 45);
+        Text: "Reload";
+        Style: @ButtonStyle;
+    }
+    TextButton #Save {
+        Anchor: (Width: 120, Height: 28, Left: 460, Top: -29);
+        Text: "Save";
+        Style: @ButtonStyle;
+    }
+    TextButton #Close {
+        Anchor: (Width: 50, Height: 28, Left: 716, Top: -194);
+        Text: "Close";
+        Style: @ButtonStyle;
+    }
+    Label #Status {
+        Anchor: (Width: 720, Height: 22, Left: 0, Top: 0);
+        Text: "";
+        Style: (FontSize: 11, RenderBold: true, TextColor: #a0ffb0, HorizontalAlignment: Center);
+    }
+}

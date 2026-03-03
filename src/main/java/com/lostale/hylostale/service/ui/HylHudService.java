@@ -8,7 +8,7 @@ import com.hypixel.hytale.server.core.universe.PlayerRef;
 import com.lostale.hylostale.data.player.HylPlayerData;
 import com.lostale.hylostale.service.player.HylPlayerExpService;
 import com.lostale.hylostale.service.player.HylPlayerStatsService;
-import com.lostale.hylostale.ui.HylHud;
+import com.lostale.hylostale.ui.hud.HylHud;
 import com.lostale.hylostale.entity.player.HylPlayerManager;
 import org.checkerframework.checker.nullness.compatqual.NonNullDecl;
 
@@ -40,7 +40,7 @@ public final class HylHudService {
 
         // charge data + recalc dérivés (maxHp/maxMana) si nécessaire
         mgr.get(id);
-        stats.recompute(id);
+        stats.recompute(id, false);
 
         // HUD session
         HylHud hud = new HylHud(ref);

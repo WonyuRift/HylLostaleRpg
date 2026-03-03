@@ -32,6 +32,12 @@ public class HylPlayerDB implements HylPlayerRepository {
             tryAddColumn(st, "player_rpg", "max_mana INTEGER NOT NULL DEFAULT 0");
             tryAddColumn(st, "player_rpg", "mana INTEGER NOT NULL DEFAULT 0");
             tryAddColumn(st, "player_rpg", "combat_until_ms INTEGER NOT NULL DEFAULT 0");
+            tryAddColumn(st, "player_rpg", "str INTEGER NOT NULL DEFAULT 1");
+            tryAddColumn(st, "player_rpg", "dex INTEGER NOT NULL DEFAULT 1");
+            tryAddColumn(st, "player_rpg", "intel INTEGER NOT NULL DEFAULT 1");
+            tryAddColumn(st, "player_rpg", "con INTEGER NOT NULL DEFAULT 1");
+            tryAddColumn(st, "player_rpg", "cha INTEGER NOT NULL DEFAULT 1");
+            tryAddColumn(st, "player_rpg", "sen INTEGER NOT NULL DEFAULT 1");
 
         } catch (SQLException e) {
             throw new RuntimeException("DB init failed", e);
@@ -69,7 +75,13 @@ public class HylPlayerDB implements HylPlayerRepository {
                    hp = ?,
                    max_mana = ?,
                    mana = ?,
-                   combat_until_ms = ?
+                   combat_until_ms = ?,
+                   str = ?,
+                   dex = ?,
+                   intel = ?,
+                   con = ?,
+                   cha = ?,
+                   sen = ?
              WHERE uuid = ?
         """)) {
             bindAll(ps, d);
@@ -85,7 +97,8 @@ public class HylPlayerDB implements HylPlayerRepository {
 
     private HylPlayerData load(UUID uuid) {
         try (PreparedStatement ps = cx.prepareStatement("""
-            SELECT uuid, level, xp, max_hp, hp, max_mana, mana, combat_until_ms
+            SELECT uuid, level, xp, max_hp, hp, max_mana, mana, combat_until_ms,
+                   str, dex, intel, con, cha, sen
               FROM player_rpg
              WHERE uuid = ?
         """)) {
@@ -102,6 +115,12 @@ public class HylPlayerDB implements HylPlayerRepository {
                 d.maxMana = rs.getInt("max_mana");
                 d.mana = rs.getInt("mana");
                 d.combatUntilMs = rs.getLong("combat_until_ms");
+                d.str = rs.getInt("str");
+                d.dex = rs.getInt("dex");
+                d.intel = rs.getInt("intel");
+                d.con = rs.getInt("con");
+                d.cha = rs.getInt("cha");
+                d.sen = rs.getInt("sen");
                 d.clamp();
                 return d;
             }
@@ -138,8 +157,15 @@ public class HylPlayerDB implements HylPlayerRepository {
         ps.setInt(5, d.maxMana);
         ps.setInt(6, d.mana);
         ps.setLong(7, d.combatUntilMs);
-        ps.setString(8, d.uuid.toString());
-    }
+
+        ps.setInt(8, d.str);
+        ps.setInt(9, d.dex);
+        ps.setInt(10, d.intel);
+        ps.setInt(11, d.con);
+        ps.setInt(12, d.cha);
+        ps.setInt(13, d.sen);
+
+        ps.setString(14, d.uuid.toString());    }
 
     private static void tryAddColumn(Statement st, String table, String columnDef) {
         try {

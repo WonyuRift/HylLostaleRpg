@@ -17,6 +17,9 @@ public class HylMobData {
     // anti double reward + lifecycle
     public boolean rewarded;      // xp déjà donnée
     public boolean initialized;   // assign déjà fait
+    public String spawnRegion;   // "forest" / etc
+    public String spawnWorld;
+    public long key;
 
     public HylMobData(Ref<EntityStore> ref) {
         this.ref = ref;
@@ -27,6 +30,9 @@ public class HylMobData {
         this.hostile = false;
         this.rewarded = false;
         this.initialized = false;
+        this.spawnRegion = "";   // "forest" / etc
+        this.spawnWorld = "default";
+        this.key = 0;
     }
 
     public void clamp() {

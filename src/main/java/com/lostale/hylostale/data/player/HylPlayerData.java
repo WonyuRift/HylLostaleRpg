@@ -11,12 +11,28 @@ public class HylPlayerData {
     public int level;     // >= 1
     public int xp;        // >= 0 (xp courant dans le niveau)
 
+    public int statPoints;   // points à dépenser
+    public int spentStr;
+    public int spentDex;
+    public int spentInt;
+    public int spentCon;
+    public int spentCha;
+    public int spentSen;
+
     // --- Stats ---
     public int maxHp;     // >= 1
     public int hp;        // [0..maxHp]
 
     public int maxMana;   // >= 0
     public int mana;      // [0..maxMana]
+
+    public int str; // Strength
+    public int dex; // Dexterity
+    public int intel; // Intelligence
+    public int con; // Concentration
+    public int cha; // Charm
+    public int sen; // Sensibility
+
 
     // --- Runtime combat/regen (optionnel DB) ---
     public long combatUntilMs; // 0 = hors combat
@@ -54,6 +70,37 @@ public class HylPlayerData {
         if (mana > maxMana) mana = maxMana;
 
         if (combatUntilMs < 0) combatUntilMs = 0L;
+
+        str = Math.max(1, str);
+        dex = Math.max(1, dex);
+        intel = Math.max(1, intel);
+        con = Math.max(1, con);
+        cha = Math.max(1, cha);
+        sen = Math.max(1, sen);
+    }
+
+    public record ComputedStats(
+            int hpMax,
+            int manaMax,
+            double ap,
+            double def,
+            double mdef,
+            double hitRate,
+            double dodgeChance,
+            double critChance,
+            double critMult,
+            double moveSpeedMult,
+            double atkSpeedMult,
+            double hpRegenPerSec,
+            double manaRegenPerSec
+    ) {}
+
+    public enum WeaponFamily {
+        MELEE_STR,
+        DUAL_DEX,
+        RANGED_DEX_SEN,
+        MAGIC_INT_SEN,
+        GUN_CON_SEN
     }
 
     public boolean isDead() {

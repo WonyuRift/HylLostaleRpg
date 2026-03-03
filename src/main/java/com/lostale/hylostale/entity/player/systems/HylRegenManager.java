@@ -23,6 +23,9 @@ public final class HylRegenManager implements AutoCloseable {
     private final ScheduledExecutorService exec;
     private final Set<UUID> online = ConcurrentHashMap.newKeySet();
 
+    private final ConcurrentHashMap<UUID, Double> hpCarry = new ConcurrentHashMap<>();
+    private final ConcurrentHashMap<UUID, Double> manaCarry = new ConcurrentHashMap<>();
+
     private ScheduledFuture<?> hpTask;
     private ScheduledFuture<?> manaTask;
 
@@ -110,41 +113,62 @@ public final class HylRegenManager implements AutoCloseable {
     }
 
     private void tickHp() {
-        int amount = Math.max(0, cfg.regenHpAmount);
-        if (amount == 0) return;
+        long periodMs = Math.max(50L, cfg.regenHpIntervalMs);
+        double dt = periodMs / 1000.0;
 
         for (UUID id : online) {
-            if (stats.isInCombat(id)) continue;
+            if (stats.isInCombat(id)) { hpCarry.remove(id); continue; }
 
             HylPlayerData d = mgr.peek(id);
             if (d == null) continue;
 
-            if (d.hp <= 0) continue;           // pas de regen si mort
-            if (d.hp >= d.maxHp) continue;     // déjà plein
+            if (d.hp <= 0) { hpCarry.remove(id); continue; }
+            if (d.hp >= d.maxHp) { hpCarry.put(id, 0.0); continue; }
 
-            stats.heal(id, amount);
+            // compute regen/sec depuis tes stats (à implémenter dans stats.compute(d))
+            HylPlayerData.ComputedStats cs = stats.compute(d);
+
+            double carry = hpCarry.getOrDefault(id, 0.0);
+            double amount = carry + (cs.hpRegenPerSec() * dt);
+
+            int add = (int) Math.floor(amount);
+            hpCarry.put(id, amount - add);
+
+            if (add <= 0) continue;
+
+            stats.heal(id, add);
             huds.renderHealth(id);
         }
     }
 
     private void tickMana() {
-        int amount = Math.max(0, cfg.regenManaAmount);
-        if (amount == 0) return;
+        long periodMs = Math.max(50L, cfg.regenManaIntervalMs);
+        double dt = periodMs / 1000.0;
 
         for (UUID id : online) {
-            if (stats.isInCombat(id)) continue;
+            if (stats.isInCombat(id)) { manaCarry.remove(id); continue; }
 
             HylPlayerData d = mgr.peek(id);
             if (d == null) continue;
 
-            if (d.maxMana <= 0) continue;
-            if (d.mana >= d.maxMana) continue;
+            if (d.mana <= 0) { manaCarry.remove(id); continue; }
+            if (d.mana >= d.maxMana) { manaCarry.put(id, 0.0); continue; }
 
-            stats.gainMana(id, amount);
-            huds.renderMana(id); // si tu n'as pas encore renderMana, remplace par renderAll ou retire
+            // compute regen/sec depuis tes stats (à implémenter dans stats.compute(d))
+            HylPlayerData.ComputedStats cs = stats.compute(d);
+
+            double carry = manaCarry.getOrDefault(id, 0.0);
+            double amount = carry + (cs.manaRegenPerSec() * dt);
+
+            int add = (int) Math.floor(amount);
+            manaCarry.put(id, amount - add);
+
+            if (add <= 0) continue;
+
+            stats.gainMana(id, add);
+            huds.renderMana(id);
         }
     }
-
     /**
      * Ferme proprement le manager.
      */

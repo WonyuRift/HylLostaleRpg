@@ -82,8 +82,7 @@ public final class HylCommand extends AbstractAsyncCommand {
             int after = players.get(id).level;
 
             if (after > before) {
-                stats.recompute(id);
-                stats.healToFull(id);
+                stats.recompute(id, true);
             }
 
             huds.renderXp(id);
